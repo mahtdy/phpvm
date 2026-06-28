@@ -1,0 +1,107 @@
+version: 2
+
+project_name: phpvm
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: phpvm
+    main: .
+    binary: phpvm
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64  # remove if Windows ARM64 binaries are needed
+    ldflags:
+      - -s -w
+      - -X github.com/mahtdy/phpvm/pkg/version.Version={{.Version}}
+      - -X github.com/mahtdy/phpvm/pkg/version.Commit={{.Commit}}
+      - -X github.com/mahtdy/phpvm/pkg/version.Date={{.Date}}
+      - -X github.com/mahtdy/phpvm/pkg/version.BuiltBy=goreleaser
+
+archives:
+  - id: phpvm
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "arm64" }}arm64
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - scripts/install.sh
+      - scripts/install.ps1
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: "^feat"
+      order: 0
+    - title: "Bug Fixes"
+      regexp: "^fix"
+      order: 1
+    - title: "Performance"
+      regexp: "^perf"
+      order: 2
+    - title: "Other"
+      order: 999
+
+release:
+  github:
+    owner: mahtdy
+    name: phpvm
+  draft: false
+  prerelease: auto
+  name_template: "phpvm {{.Tag}}"
+
+brews:
+  - name: phpvm
+    homepage: https://github.com/mahtdy/phpvm
+    description: "PHP Version Manager — cross-platform CLI"
+    license: MIT
+    repository:
+      owner: mahtdy
+      name: homebrew-tap
+      branch: main
+    directory: Formula
+    install: |
+      bin.install "phpvm"
+    test: |
+      system "#{bin}/phpvm", "version"
+
+scoop:
+  repository:
+    owner: mahtdy
+    name: scoop-phpvm
+    branch: main
+  homepage: https://github.com/mahtdy/phpvm
+  description: "PHP Version Manager"
+  license: MIT
